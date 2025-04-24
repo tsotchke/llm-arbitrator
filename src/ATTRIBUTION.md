@@ -37,7 +37,7 @@ The LLM Arbitrator was made possible through contributions from:
 
 This project incorporates the following open-source projects:
 
-- [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/mcp) - For MCP protocol support
+- [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol) - For MCP protocol support
 - [axios](https://github.com/axios/axios) - For HTTP requests
 - [TypeScript](https://www.typescriptlang.org/) - For type safety and modern JavaScript features
 
