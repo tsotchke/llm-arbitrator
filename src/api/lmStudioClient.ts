@@ -39,7 +39,7 @@ function getLanguageFromExt(fileName: string): string {
 
 /**
  * LM Studio OpenAI-compatible API client
- * Connects to a locally running LM Studio server to interact with the DeepSeek R1 model
+ * Connects to a locally running LM Studio server to interact with language models
  * Supports both text and multimodal inputs
  */
 export class LmStudioClient {
@@ -88,7 +88,7 @@ export class LmStudioClient {
   }
 
   /**
-   * Generates completions from the DeepSeek R1 or other LM Studio model
+   * Generates completions from language models available in LM Studio
    * @param prompt Prompt to send to the model (can be text or objects with file paths)
    * @param options Optional parameters for the completion
    * @returns Generated text from the model

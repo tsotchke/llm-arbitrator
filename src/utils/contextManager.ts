@@ -1,5 +1,5 @@
 /**
- * Smart Context Manager for R1 Enhancer
+ * Smart Context Manager for LLM Arbitrator
  * 
  * Provides utilities for automatically gathering relevant context files
  * based on project structure, imports, and file relationships.

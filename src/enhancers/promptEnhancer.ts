@@ -3,7 +3,7 @@ import { getDomainTemplate } from '../templates/templateLoader.js';
 
 /**
  * Optimizes user prompts to enhance Claude's performance
- * Leverages R1 to restructure and enhance prompts for more efficient and accurate responses
+ * Leverages specialized language models to restructure and enhance prompts for more efficient and accurate responses
  */
 export class PromptEnhancer {
   private lmStudioClient: LmStudioClient;
@@ -29,7 +29,7 @@ export class PromptEnhancer {
     // Get domain-specific template if available
     const template = getDomainTemplate(domain, 'prompt-optimization');
     
-    // Construct the prompt for the R1 model
+    // Construct the prompt for the selected model
     const prompt = this.constructPromptOptimizationRequest(
       originalPrompt,
       domain,
@@ -37,7 +37,7 @@ export class PromptEnhancer {
     );
     
     try {
-      // Generate optimized prompt from R1 model
+      // Generate optimized prompt from the selected model
       let promptData: string | { text: string; files?: string[] };
       
       if (files && files.length > 0) {
@@ -166,7 +166,7 @@ Focus on improving clarity, adding necessary context, specifying requirements mo
     }
     
     // Structure the response with clear sections
-    let processed = `# R1-Optimized Prompt\n\n`;
+    let processed = `# Optimized Prompt\n\n`;
     
     // Add thinking section if present
     if (thinking) {
@@ -190,7 +190,7 @@ Focus on improving clarity, adding necessary context, specifying requirements mo
     
     // Add guidance for Claude
     processed += `## Notes for Claude\n
-The above is an optimized version of the original user prompt, enhanced by the DeepSeek R1 model.
+The above is an optimized version of the original user prompt, enhanced by a specialized language model.
 The "Prompt Engineering Process" section reveals the analysis behind the improvements and should help you understand why certain changes were made.
 This structure should help you provide a more precise and efficient response to the user's request.
 You can use the optimized prompt as your primary guidance for responding to the user.`;

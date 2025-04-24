@@ -70,7 +70,14 @@ Enhances code generation by leveraging specialized models for different domains.
     },
     "files": {
       "type": "array",
-      "description": "File paths to include as multimodal input (optional)",
+      "description": "File paths to include as context (code files, documentation, etc.)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "images": {
+      "type": "array",
+      "description": "Image paths to include for multimodal models",
       "items": {
         "type": "string"
       }
@@ -141,7 +148,14 @@ Verifies a code solution using specialized models for analysis.
     },
     "files": {
       "type": "array",
-      "description": "File paths to include as multimodal input (optional)",
+      "description": "File paths to include as context (code files, documentation, etc.)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "images": {
+      "type": "array",
+      "description": "Image paths to include for multimodal models",
       "items": {
         "type": "string"
       }
@@ -362,13 +376,13 @@ interface ModelCapability {
 
 ### PromptInput
 
-Represents input for a prompt to be sent to a language model.
+Represents input for a prompt to be sent to a language model. Supports text, file context, and multimedia.
 
 ```typescript
 type PromptInput = string | {
   text?: string;
-  files?: string[];
-  images?: string[];
+  files?: string[];  // Paths to text-based files for context (code, documentation, etc.)
+  images?: string[]; // Paths to image files for multimodal models
 };
 ```
 

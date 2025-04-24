@@ -132,25 +132,8 @@ export class OllamaProvider extends BaseModelProvider {
    * @returns Array of model capabilities
    */
   getCapabilities(): ModelCapability[] {
-    return [
-      {
-        domain: 'code',
-        tasks: ['generation', 'explanation', 'verification'],
-        languageSupport: ['python', 'javascript', 'typescript', 'go', 'rust', 'java'],
-        specializations: ['functional', 'web'],
-        performanceMetrics: {
-          accuracy: 0.82,
-          speed: 0.8, // Generally faster than LM Studio for same model size
-        },
-      },
-      {
-        domain: 'reasoning',
-        tasks: ['analysis', 'problemSolving', 'chainOfThought'],
-        performanceMetrics: {
-          accuracy: 0.78,
-          speed: 0.75,
-        },
-      },
+    // Base capabilities that all Ollama models should have
+    const baseCapabilities: ModelCapability[] = [
       {
         domain: 'chat',
         tasks: ['conversation', 'assistance'],
@@ -158,8 +141,71 @@ export class OllamaProvider extends BaseModelProvider {
           accuracy: 0.85,
           speed: 0.8,
         },
-      },
+      }
     ];
+    
+    // Try to infer additional capabilities from the model name
+    try {
+      // If we have a default model, add capabilities based on its name
+      if (this.defaultModel) {
+        const modelName = this.defaultModel.toLowerCase();
+        
+        // Code generation capability
+        if (
+          modelName.includes('code') || 
+          modelName.includes('deepseek') || 
+          modelName.includes('wizard') ||
+          modelName.includes('starcoder') ||
+          modelName.includes('codellama')
+        ) {
+          baseCapabilities.push({
+            domain: 'code',
+            tasks: ['generation', 'explanation', 'verification'],
+            languageSupport: ['python', 'javascript', 'typescript', 'go', 'rust', 'java'],
+            specializations: ['functional', 'web'],
+            performanceMetrics: {
+              accuracy: 0.82,
+              speed: 0.8, // Generally faster than LM Studio for same model size
+            },
+          });
+        }
+        
+        // Reasoning capability
+        if (
+          modelName.includes('qwen') || 
+          modelName.includes('llama') || 
+          modelName.includes('mixtral') ||
+          modelName.includes('deepseek') ||
+          modelName.includes('mistral')
+        ) {
+          baseCapabilities.push({
+            domain: 'reasoning',
+            tasks: ['analysis', 'problemSolving', 'chainOfThought'],
+            performanceMetrics: {
+              accuracy: 0.78,
+              speed: 0.75,
+            },
+          });
+        }
+        
+        // Multilingual capability (especially for Qwen models)
+        if (modelName.includes('qwen')) {
+          baseCapabilities.push({
+            domain: 'multilingual',
+            tasks: ['translation', 'understanding'],
+            performanceMetrics: {
+              accuracy: 0.8,
+              speed: 0.7,
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error inferring model capabilities:', error);
+    }
+    
+    // Ensure we always return at least the base capabilities
+    return baseCapabilities;
   }
   
   /**
@@ -216,58 +262,100 @@ export class OllamaProvider extends BaseModelProvider {
         requestBody.prompt = promptData;
       }
     } else if (typeof promptData === 'object') {
-      // Complex prompt with text and possibly files
-      let combinedContent = promptData.text;
-      
-      // Process files if present
-      if (promptData.files && promptData.files.length > 0) {
-        // Create an array to store individual file contents
-        let fileTexts = [];
+      // If using messages, build an array of content objects similar to LM Studio
+      // This is more structured and flexible than a simple concatenated string
+      if (mergedOptions.system_message) {
+        requestBody.messages = [
+          { role: 'system', content: mergedOptions.system_message }
+        ];
         
-        for (const filePath of promptData.files) {
-          try {
-            // Resolve the file path to ensure proper handling
-            const resolvedPath = path.resolve(filePath);
-            
-            // Only proceed if the file exists
-            if (fs.existsSync(resolvedPath)) {
-              const fileContent = fs.readFileSync(resolvedPath, 'utf8');
-              const fileName = path.basename(resolvedPath);
-              const fileExt = path.extname(resolvedPath).substring(1); // Get extension without dot
+        // Build user message with content array if possible
+        const userContent = [];
+        
+        // Add the primary text content
+        if (promptData.text) {
+          userContent.push(promptData.text);
+        }
+        
+        // Process files if present
+        if (promptData.files && promptData.files.length > 0) {
+          for (const filePath of promptData.files) {
+            try {
+              // Resolve the file path to ensure proper handling
+              const resolvedPath = path.resolve(filePath);
               
-              // Format file content with syntax highlighting based on extension
-              const formattedContent = `# File: ${fileName}\n\`\`\`${fileExt}\n${fileContent}\n\`\`\`\n`;
-              fileTexts.push(formattedContent);
-              
-              console.log(`Added file ${fileName} content to Ollama prompt (${fileContent.length} bytes)`);
-            } else {
-              console.error(`File not found: ${filePath} (resolved to ${resolvedPath})`);
+              // Only proceed if the file exists
+              if (fs.existsSync(resolvedPath)) {
+                const fileContent = fs.readFileSync(resolvedPath, 'utf8');
+                const fileName = path.basename(resolvedPath);
+                const fileExt = path.extname(resolvedPath).substring(1); // Get extension without dot
+                
+                // Format file content with syntax highlighting based on extension
+                const formattedContent = `# File: ${fileName}\n\`\`\`${fileExt}\n${fileContent}\n\`\`\`\n`;
+                userContent.push(formattedContent);
+                
+                console.log(`Added file ${fileName} content to Ollama prompt (${fileContent.length} bytes)`);
+              } else {
+                console.error(`File not found: ${filePath} (resolved to ${resolvedPath})`);
+              }
+            } catch (error) {
+              console.error(`Error reading file ${filePath}:`, error);
             }
-          } catch (error) {
-            console.error(`Error reading file ${filePath}:`, error);
           }
         }
         
-        // Combine all file contents
-        if (fileTexts.length > 0) {
-          combinedContent += `\n\n## Reference Files\n${fileTexts.join('\n')}\n`;
-          console.log(`Added ${fileTexts.length} files to Ollama prompt`);
+        // Add user message with complete content
+        requestBody.messages.push({
+          role: 'user',
+          content: userContent.join('\n\n')
+        });
+      } else {
+        // For the /api/generate endpoint (without system message)
+        // Fall back to the simpler concatenated prompt approach
+        let combinedContent = promptData.text || '';
+        
+        // Process files if present
+        if (promptData.files && promptData.files.length > 0) {
+          // Create an array to store individual file contents
+          let fileTexts = [];
+          
+          for (const filePath of promptData.files) {
+            try {
+              // Resolve the file path to ensure proper handling
+              const resolvedPath = path.resolve(filePath);
+              
+              // Only proceed if the file exists
+              if (fs.existsSync(resolvedPath)) {
+                const fileContent = fs.readFileSync(resolvedPath, 'utf8');
+                const fileName = path.basename(resolvedPath);
+                const fileExt = path.extname(resolvedPath).substring(1); // Get extension without dot
+                
+                // Format file content with syntax highlighting based on extension
+                const formattedContent = `# File: ${fileName}\n\`\`\`${fileExt}\n${fileContent}\n\`\`\`\n`;
+                fileTexts.push(formattedContent);
+                
+                console.log(`Added file ${fileName} content to Ollama prompt (${fileContent.length} bytes)`);
+              } else {
+                console.error(`File not found: ${filePath} (resolved to ${resolvedPath})`);
+              }
+            } catch (error) {
+              console.error(`Error reading file ${filePath}:`, error);
+            }
+          }
+          
+          // Combine all file contents
+          if (fileTexts.length > 0) {
+            combinedContent += `\n\n## Reference Files\n${fileTexts.join('\n')}\n`;
+            console.log(`Added ${fileTexts.length} files to Ollama prompt`);
+          }
         }
+        
+        requestBody.prompt = combinedContent;
       }
       
       // Note: Ollama doesn't support images in the same way as OpenAI API
       if (promptData.images && promptData.images.length > 0) {
         console.warn('Image support not available for Ollama provider');
-      }
-      
-      // Set the prompt with combined content
-      if (mergedOptions.system_message) {
-        requestBody.messages = [
-          { role: 'system', content: mergedOptions.system_message },
-          { role: 'user', content: combinedContent }
-        ];
-      } else {
-        requestBody.prompt = combinedContent;
       }
     }
     

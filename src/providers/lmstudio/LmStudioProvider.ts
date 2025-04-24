@@ -57,7 +57,7 @@ export class LmStudioProvider extends BaseModelProvider {
     this.debug = this.getConfigValue<boolean>('debug', false);
     
     // Set the default model if provided
-    this.defaultModel = this.getConfigValue<string>('defaultModel', 'deepseek-r1-distill-qwen-32b-uncensored-mlx');
+    this.defaultModel = this.getConfigValue<string>('defaultModel', '');
     
     // Create axios instance for API requests
     this.api = axios.create({
@@ -131,27 +131,80 @@ export class LmStudioProvider extends BaseModelProvider {
    * @returns Array of model capabilities
    */
   getCapabilities(): ModelCapability[] {
-    // This is a simplified approach - ideally would be more dynamic based on available models
-    return [
+    // Base capabilities that all LM Studio models should have
+    const baseCapabilities: ModelCapability[] = [
       {
-        domain: 'code',
-        tasks: ['generation', 'explanation', 'verification'],
-        languageSupport: ['python', 'javascript', 'typescript', 'c', 'cpp', 'java', 'rust'],
-        specializations: ['functional', 'quantum'],
+        domain: 'chat',
+        tasks: ['conversation', 'assistance'],
         performanceMetrics: {
           accuracy: 0.85,
           speed: 0.7,
         },
-      },
-      {
-        domain: 'reasoning',
-        tasks: ['analysis', 'problemSolving', 'chainOfThought'],
-        performanceMetrics: {
-          accuracy: 0.8,
-          speed: 0.6,
-        },
-      },
+      }
     ];
+    
+    // Try to infer additional capabilities from the model name
+    try {
+      // If we have a default model, add capabilities based on its name
+      if (this.defaultModel) {
+        const modelName = this.defaultModel.toLowerCase();
+        
+        // Code generation capability
+        if (
+          modelName.includes('code') || 
+          modelName.includes('deepseek') || 
+          modelName.includes('wizard') ||
+          modelName.includes('starcoder') ||
+          modelName.includes('codellama')
+        ) {
+          baseCapabilities.push({
+            domain: 'code',
+            tasks: ['generation', 'explanation', 'verification'],
+            languageSupport: ['python', 'javascript', 'typescript', 'c', 'cpp', 'java', 'rust'],
+            specializations: ['functional', 'quantum'],
+            performanceMetrics: {
+              accuracy: 0.85,
+              speed: 0.7,
+            },
+          });
+        }
+        
+        // Reasoning capability
+        if (
+          modelName.includes('qwen') || 
+          modelName.includes('llama') || 
+          modelName.includes('mixtral') ||
+          modelName.includes('deepseek') ||
+          modelName.includes('mistral')
+        ) {
+          baseCapabilities.push({
+            domain: 'reasoning',
+            tasks: ['analysis', 'problemSolving', 'chainOfThought'],
+            performanceMetrics: {
+              accuracy: 0.8,
+              speed: 0.6,
+            },
+          });
+        }
+        
+        // Multilingual capability (especially for Qwen models)
+        if (modelName.includes('qwen')) {
+          baseCapabilities.push({
+            domain: 'multilingual',
+            tasks: ['translation', 'understanding'],
+            performanceMetrics: {
+              accuracy: 0.8,
+              speed: 0.7,
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error inferring model capabilities:', error);
+    }
+    
+    // Ensure we always return at least the base capabilities
+    return baseCapabilities;
   }
   
   /**
@@ -168,9 +221,28 @@ export class LmStudioProvider extends BaseModelProvider {
     const defaultOptions = this.getConfigValue<RequestOptions>('defaultOptions', {});
     const mergedOptions = { ...defaultOptions, ...options };
     
+    // Ensure we have a valid model
+    let modelToUse = mergedOptions.model || this.defaultModel;
+    
+    // Get available models to check if the requested model exists
+    const availableModels = await this.getAvailableModels();
+    
+    if (!availableModels.includes(modelToUse)) {
+      console.warn(`Model ${modelToUse} not found. Available models: ${availableModels.join(', ')}`);
+      
+      // If we don't have any available models, throw an error
+      if (availableModels.length === 0) {
+        throw new Error('No models available on LM Studio server');
+      }
+      
+      // Otherwise use the first available model
+      console.log(`Falling back to ${availableModels[0]}`);
+      modelToUse = availableModels[0];
+    }
+    
     // Prepare the API request
     const requestBody: any = {
-      model: mergedOptions.model || this.defaultModel,
+      model: modelToUse,
       temperature: mergedOptions.temperature ?? 0.7,
       max_tokens: mergedOptions.max_tokens ?? 2000,
       stream: false,
@@ -200,12 +272,16 @@ export class LmStudioProvider extends BaseModelProvider {
             const fileContent = fs.readFileSync(filePath, 'utf8');
             const fileName = path.basename(filePath);
             
-            // For simplicity, we're treating all files as text
-            // A more advanced implementation would handle different file types
+            // Get file extension for syntax highlighting
+            const fileExt = path.extname(fileName).substring(1); // Get extension without dot
+            
+            // Format file content with syntax highlighting based on extension
+            const formattedContent = `# File: ${fileName}\n\`\`\`${fileExt}\n${fileContent}\n\`\`\`\n`;
+            
             console.log(`Added text file ${fileName} content to prompt (${fileContent.length} bytes)`);
             content.push({
               type: 'text',
-              text: `File: ${fileName}\n\n${fileContent}`
+              text: formattedContent
             });
           } catch (error) {
             console.error(`Error reading file ${filePath}:`, error);
@@ -245,7 +321,35 @@ export class LmStudioProvider extends BaseModelProvider {
         throw new Error('Invalid response from LM Studio API');
       }
     } catch (error: any) {
-      console.error('LM Studio completion error:', error.message);
+      console.error('LM Studio chat completion error:', error.message);
+      
+      // If the error is a 404, try a different endpoint variant
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        try {
+          console.error('Attempting alternative endpoint structure...');
+          
+          // Try the /completions endpoint as fallback
+          // Simplify the request for completions endpoint
+          const completionRequest = {
+            model: modelToUse,
+            prompt: typeof promptData === 'string' ? promptData : (promptData.text || ''),
+            temperature: mergedOptions.temperature ?? 0.7,
+            max_tokens: mergedOptions.max_tokens ?? 2000,
+            stop: mergedOptions.stop || undefined,
+            stream: false,
+          };
+          
+          const altResponse = await this.api.post('/v1/completions', completionRequest);
+          
+          if (altResponse.status === 200 && altResponse.data.choices && altResponse.data.choices.length > 0) {
+            console.error('Alternative endpoint succeeded');
+            return altResponse.data.choices[0].text || '';
+          }
+        } catch (altError) {
+          console.error('Alternative endpoint also failed:', altError);
+        }
+      }
+      
       throw new Error(`LM Studio API error: ${error.message}`);
     }
   }

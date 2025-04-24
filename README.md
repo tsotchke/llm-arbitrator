@@ -28,6 +28,8 @@ LLM Arbitrator is a brilliant framework that:
 - 🎯 **Automatically routes tasks** to the models that will handle them best
 - 🔍 **Preserves reasoning chains** so you can see exactly how decisions are made
 - 📊 **Manages context intelligently** to maximize what each model can understand
+- 📁 **Handles file context** for code files, documentation, and any other text-based files
+- 🖼️ **Supports images and multimedia** in multimodal contexts for capable models
 - 🔗 **Integrates perfectly with Claude/Cline** through MCP protocol
 
 Think of it as having a team of AI experts at your fingertips, each contributing their unique strengths to solve your problems with unprecedented intelligence.
@@ -597,7 +599,7 @@ If you use LLM Arbitrator in your research or applications, please cite it as:
 ```bibtex
 @software{tsotchke2025llmarbitrator,
   author       = {tsotchke},
-  title        = {{LLM Arbitrator: A Framework for Intelligent Model Coordination}},
+  title        = {LLM Arbitrator: A Framework for Intelligent Model Coordination},
   year         = {2025},
   publisher    = {GitHub},
   url          = {https://github.com/tsotchke/llm-arbitrator},
