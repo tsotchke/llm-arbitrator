@@ -273,7 +273,7 @@ If you use LLM Arbitrator in your research, please cite:
 ```bibtex
 @software{tsotchke2025llmarbitrator,
   author       = {tsotchke},
-  title        = {{LLM Arbitrator: A Framework for Intelligent Model Coordination}},
+  title        = {LLM Arbitrator: A Framework for Intelligent Model Coordination},
   year         = {2025},
   publisher    = {GitHub},
   url          = {https://github.com/tsotchke/llm-arbitrator},
