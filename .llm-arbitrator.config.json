@@ -1,0 +1,40 @@
+{
+  "server": {
+    "name": "llm-arbitrator",
+    "version": "1.0.0",
+    "logLevel": "info"
+  },
+  "providers": {
+    "lmStudio": {
+      "enabled": true,
+      "endpoint": "http://127.0.0.1:1234",
+      "defaultModel": "deepseek-r1-distill-qwen-32b-uncensored-mlx",
+      "timeout": 30000
+    },
+    "ollama": {
+      "enabled": true,
+      "endpoint": "http://127.0.0.1:11434",
+      "defaultModel": "deepseek-r1:70b",
+      "timeout": 30000
+    }
+  },
+  "models": {
+    "defaultTemperature": 0.7,
+    "defaultMaxTokens": 4000,
+    "defaultStopSequences": []
+  },
+  "files": {
+    "maxContextFiles": 10,
+    "maxFileSize": 1048576,
+    "allowedExtensions": [
+      ".js", ".ts", ".jsx", ".tsx", ".py", ".java", ".c", ".cpp", ".h", ".hpp",
+      ".cs", ".go", ".rb", ".php", ".html", ".css", ".json", ".md", ".txt",
+      ".yml", ".yaml", ".xml", ".sh", ".bat", ".ps1"
+    ]
+  },
+  "debug": {
+    "enabled": false,
+    "logFilePath": null,
+    "verboseLogging": false
+  }
+}

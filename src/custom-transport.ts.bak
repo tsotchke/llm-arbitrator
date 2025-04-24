@@ -1,0 +1,60 @@
+/**
+ * Custom MCP Transport Wrapper
+ * 
+ * This file creates a custom transport wrapper that handles method name
+ * translation between different versions of the MCP protocol before
+ * passing messages to the underlying transport.
+ */
+
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+
+// Define the transport interface since it's not directly exported
+interface ServerTransport {
+  receive(): Promise<any>;
+  send(message: any): Promise<void>;
+  close(): Promise<void>;
+}
+
+type LogFn = (level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: any) => void;
+
+/**
+ * A transport wrapper that adapts method names to ensure compatibility
+ * with different MCP protocol versions (namespaced and non-namespaced)
+ */
+export class NamespacedMethodTransport implements ServerTransport {
+  private underlying: ServerTransport;
+  private log: LogFn;
+  
+  constructor(log: LogFn) {
+    this.underlying = new StdioServerTransport();
+    this.log = log;
+    this.log('debug', 'Created custom transport with method name translation');
+  }
+  
+  async receive(): Promise<any> {
+    const message = await this.underlying.receive();
+    
+    if (message && typeof message === 'object' && message.method) {
+      this.log('debug', `Received RPC message with method: ${message.method}`, message);
+      
+      // Handle namespaced methods
+      if (message.method === 'mcp.listTools') {
+        this.log('debug', 'Translating mcp.listTools -> tools/list');
+        message.method = 'tools/list';
+      } else if (message.method === 'mcp.callTool') {
+        this.log('debug', 'Translating mcp.callTool -> tools/call');
+        message.method = 'tools/call';
+      }
+    }
+    
+    return message;
+  }
+  
+  async send(message: any): Promise<void> {
+    return this.underlying.send(message);
+  }
+  
+  async close(): Promise<void> {
+    return this.underlying.close();
+  }
+}

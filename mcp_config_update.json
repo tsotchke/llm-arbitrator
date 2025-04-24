@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "eshkol-tools": {
+      "command": "node",
+      "args": ["/Users/tyr/Documents/Cline/MCP/eshkol-tools/build/index.js"],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "qrng-tools": {
+      "command": "node",
+      "args": ["/Users/tyr/Documents/Cline/MCP/qrng-tools-server/build/index.js"],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "llm-arbitrator": {
+      "command": "node",
+      "args": ["/Users/tyr/Documents/Cline/MCP/r1-enhancer/build/index.js"],
+      "env": {
+        "LM_STUDIO_ENDPOINT": "http://127.0.0.1:1234",
+        "DEBUG_MODE": "true", 
+        "LOG_LEVEL": "debug",
+        "MCP_PROTOCOL_VERSION": "1.0"
+      },
+      "disabled": false,
+      "autoApprove": ["enhance_code_generation", "verify_solution", "optimize_prompt"],
+      "timeout": 120000
+    }
+  }
+}

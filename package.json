@@ -1,0 +1,36 @@
+{
+  "name": "llm-arbitrator",
+  "version": "1.0.0",
+  "description": "MCP server for intelligent routing between different LLM providers",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && chmod +x build/index.js",
+    "start": "node build/index.js",
+    "dev": "tsc -w",
+    "test": "node test-providers.js && node test-chain-of-thought.js && node test-context-manager.js && node test-integrated-features.js",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "cline",
+    "deepseek",
+    "r1",
+    "code",
+    "enhancer"
+  ],
+  "author": "tsotchke",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/create-server": "^0.3.1",
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "axios": "^1.8.4",
+    "mime-types": "^2.1.35",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/mime-types": "^2.1.4",
+    "@types/node": "^22.14.1"
+  }
+}
